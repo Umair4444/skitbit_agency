@@ -1,65 +1,105 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { Play, Pause } from "lucide-react"
+import { useEffect, useRef, useState } from "react";
+import { Play, Pause } from "lucide-react";
 
-const ACCENT = "#C6FF3A"
+const ACCENT = "#C6FF3A";
 
 type YouTubeGridProps = {
-  videoIds: string[]
+  videoIds: string[];
+};
+
+// Minimal YouTube IFrame API typings
+interface YouTubePlayer {
+  playVideo: () => void;
+  pauseVideo: () => void;
+  destroy: () => void;
 }
 
-// Minimal typings to avoid runtime imports
-declare global {
-  interface Window {
-    YT: any
-    onYouTubeIframeAPIReady: () => void
-  }
+interface YouTubeEvent {
+  data: number;
+}
+
+interface YouTubeWindow extends Window {
+  YT?: {
+    Player: new (
+      elementId: string,
+      options: {
+        videoId: string;
+        width?: string | number;
+        height?: string | number;
+        playerVars?: Record<string, unknown>;
+        events?: {
+          onStateChange?: (e: YouTubeEvent) => void;
+        };
+      }
+    ) => YouTubePlayer;
+    PlayerState: {
+      UNSTARTED: number;
+      ENDED: number;
+      PLAYING: number;
+      PAUSED: number;
+      BUFFERING: number;
+      CUED: number;
+    };
+  };
+  onYouTubeIframeAPIReady?: () => void;
 }
 
 export default function YouTubeGrid({ videoIds }: YouTubeGridProps) {
-  const containerIds = useRef(videoIds.map((_, i) => `yt-player-${i}-${Math.random().toString(36).slice(2)}`))
-  const playersRef = useRef<any[]>([])
-  const [apiReady, setApiReady] = useState(false)
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null)
+  const containerIds = useRef(
+    videoIds.map(
+      (_, i) => `yt-player-${i}-${Math.random().toString(36).slice(2)}`
+    )
+  );
+  const playersRef = useRef<YouTubePlayer[]>([]);
+  const [apiReady, setApiReady] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
   // Load IFrame API once
   useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined") return;
 
-    const onReady = () => setApiReady(true)
+    const win = window as YouTubeWindow;
 
-    if (window.YT && window.YT.Player) {
-      onReady()
+    const onReady = () => setApiReady(true);
+
+    if (win.YT && win.YT.Player) {
+      onReady();
     } else {
-      const existing = document.querySelector<HTMLScriptElement>('script[src="https://www.youtube.com/iframe_api"]')
+      const existing = document.querySelector<HTMLScriptElement>(
+        'script[src="https://www.youtube.com/iframe_api"]'
+      );
       if (!existing) {
-        const tag = document.createElement("script")
-        tag.src = "https://www.youtube.com/iframe_api"
-        document.body.appendChild(tag)
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.body.appendChild(tag);
       }
-      const prev = window.onYouTubeIframeAPIReady
-      window.onYouTubeIframeAPIReady = () => {
-        prev?.()
-        onReady()
-      }
+
+      const prev = win.onYouTubeIframeAPIReady;
+      win.onYouTubeIframeAPIReady = () => {
+        prev?.();
+        onReady();
+      };
     }
-  }, [])
+  }, []);
 
   // Build players when API is ready
   useEffect(() => {
-    if (!apiReady) return
-    // Clean up old players if any
-    playersRef.current.forEach((p) => p?.destroy?.())
-    playersRef.current = []
+    if (!apiReady) return;
+
+    const win = window as YouTubeWindow;
+
+    // Clean up old players
+    playersRef.current.forEach((p) => p.destroy());
+    playersRef.current = [];
 
     containerIds.current.forEach((id, idx) => {
-      const player = new window.YT.Player(id, {
+      const player = new win.YT!.Player(id, {
         videoId: videoIds[idx],
         width: "100%",
         height: "100%",
         playerVars: {
-          // Hide UI and keep design intact
           controls: 0,
           modestbranding: 1,
           rel: 0,
@@ -67,64 +107,54 @@ export default function YouTubeGrid({ videoIds }: YouTubeGridProps) {
           disablekb: 1,
           iv_load_policy: 3,
           cc_load_policy: 0,
-          // Autoplay is controlled via our custom buttons
         },
         events: {
-          onStateChange: (e: any) => {
-            const state = e?.data
-            const YTP = window.YT?.PlayerState
+          onStateChange: (e: YouTubeEvent) => {
+            const state = e.data;
+            const YTP = win.YT?.PlayerState;
             if (state === YTP?.PLAYING) {
               // Pause others
               playersRef.current.forEach((p, i) => {
-                if (i !== idx) {
-                  try {
-                    p.pauseVideo()
-                  } catch {}
-                }
-              })
-              setPlayingIndex(idx)
-            } else if (state === YTP?.PAUSED || state === YTP?.ENDED || state === YTP?.CUED) {
-              setPlayingIndex((prev) => (prev === idx ? null : prev))
+                if (i !== idx) p.pauseVideo();
+              });
+              setPlayingIndex(idx);
+            } else if ([YTP?.PAUSED, YTP?.ENDED, YTP?.CUED].includes(state)) {
+              setPlayingIndex((prev) => (prev === idx ? null : prev));
             }
           },
         },
-      })
-      playersRef.current[idx] = player
-    })
+      });
+      playersRef.current[idx] = player;
+    });
 
     return () => {
-      playersRef.current.forEach((p) => p?.destroy?.())
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiReady, videoIds.join(",")])
+      playersRef.current.forEach((p) => p.destroy());
+    };
+  }, [apiReady, videoIds]);
 
   const handlePlay = (idx: number) => {
-    const player = playersRef.current[idx]
-    if (!player) return
+    const player = playersRef.current[idx];
+    if (!player) return;
+
     // Pause others first
     playersRef.current.forEach((p, i) => {
-      if (i !== idx) {
-        try {
-          p.pauseVideo()
-        } catch {}
-      }
-    })
-    try {
-      player.playVideo()
-    } catch {}
-  }
+      if (i !== idx) p.pauseVideo();
+    });
+    player.playVideo();
+  };
 
   const handlePause = (idx: number) => {
-    const player = playersRef.current[idx]
-    try {
-      player.pauseVideo()
-    } catch {}
-  }
+    const player = playersRef.current[idx];
+    player.pauseVideo();
+  };
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {containerIds.current.map((cid, idx) => (
-        <div key={cid} className="group relative overflow-hidden rounded-2xl liquid-glass">
+        <div
+          key={cid}
+          className="group relative overflow-hidden rounded-2xl liquid-glass"
+        >
           <div className="relative z-0 aspect-video">
             <div id={cid} className="h-full w-full" />
           </div>
@@ -159,5 +189,5 @@ export default function YouTubeGrid({ videoIds }: YouTubeGridProps) {
         </div>
       ))}
     </div>
-  )
+  );
 }
