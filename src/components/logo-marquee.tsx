@@ -1,23 +1,33 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import Image from "next/image"
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import Image from "next/image";
 
 export function LogoMarquee() {
-  const [pausedRow, setPausedRow] = useState<string | null>(null)
+  const [pausedRow, setPausedRow] = useState<string | null>(null);
 
   // Logo data with colors and content
   const logos = [
     { name: "Intel", content: "intel", color: "text-neutral-300" },
     { name: "MongoDB", content: "🟢", color: "text-green-500" },
-    { name: "Skitbit", content: "image", color: "text-neutral-300", image: "/icons/favicon-dark.svg" },
+    {
+      name: "Skitbit",
+      content: "image",
+      color: "text-neutral-300",
+      image: "/icons/favicon-dark.svg",
+    },
     { name: "VK", content: "VK", color: "text-white", bg: "bg-blue-500" },
     { name: "TechCrunch", content: "TC", color: "text-neutral-300" },
     { name: "MailChimp", content: "🐵", color: "text-yellow-500" },
     { name: "ESJ", content: "ESJ", color: "text-neutral-300" },
-    { name: "Kickstarter", content: "K", color: "text-white", bg: "bg-green-500" },
-  ]
+    {
+      name: "Kickstarter",
+      content: "K",
+      color: "text-white",
+      bg: "bg-green-500",
+    },
+  ];
 
   const secondRowLogos = [
     { name: "StumbleUpon", content: "🔴", color: "text-red-500" },
@@ -26,11 +36,24 @@ export function LogoMarquee() {
     { name: "Google", content: "G", color: "text-neutral-300" },
     { name: "Behance", content: "Be", color: "text-white", bg: "bg-blue-500" },
     { name: "Apple", content: "🍎", color: "text-neutral-300" },
-    { name: "TransferWise", content: "✓", color: "text-white", bg: "bg-green-500" },
+    {
+      name: "TransferWise",
+      content: "✓",
+      color: "text-white",
+      bg: "bg-green-500",
+    },
     { name: "Medium", content: "M", color: "text-neutral-300" },
-  ]
+  ];
 
-  const LogoCard = ({ logo, rowId }: { logo: any; rowId: string }) => (
+  type Logo = {
+    name: string;
+    content: string;
+    color: string;
+    bg?: string;
+    image?: string;
+  };
+
+  const LogoCard = ({ logo, rowId }: { logo: Logo; rowId: string }) => (
     <div
       className="flex-shrink-0 mx-3"
       onMouseEnter={() => setPausedRow(rowId)}
@@ -48,15 +71,23 @@ export function LogoMarquee() {
             />
           </div>
         ) : logo.bg ? (
-          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${logo.bg} flex items-center justify-center`}>
-            <span className={`text-sm sm:text-lg font-bold ${logo.color}`}>{logo.content}</span>
+          <div
+            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${logo.bg} flex items-center justify-center`}
+          >
+            <span className={`text-sm sm:text-lg font-bold ${logo.color}`}>
+              {logo.content}
+            </span>
           </div>
         ) : (
-          <span className={`text-lg sm:text-xl lg:text-2xl font-semibold ${logo.color}`}>{logo.content}</span>
+          <span
+            className={`text-lg sm:text-xl lg:text-2xl font-semibold ${logo.color}`}
+          >
+            {logo.content}
+          </span>
         )}
       </div>
     </div>
-  )
+  );
 
   return (
     <section className="text-white py-16 sm:py-20 overflow-hidden">
@@ -68,7 +99,10 @@ export function LogoMarquee() {
             <br />
             customers
           </h2>
-          <Button variant="outline" className="mt-4 sm:mt-0 liquid-glass hover:liquid-glass-enhanced bg-transparent">
+          <Button
+            variant="outline"
+            className="mt-4 sm:mt-0 liquid-glass hover:liquid-glass-enhanced bg-transparent"
+          >
             Learn More
           </Button>
         </div>
@@ -78,9 +112,12 @@ export function LogoMarquee() {
           {/* First Row - Scrolling Right */}
           <div className="flex overflow-hidden mb-6 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
             <div
-              className={`flex animate-scroll-right whitespace-nowrap ${pausedRow === "first" ? "animation-play-state-paused" : ""}`}
+              className={`flex animate-scroll-right whitespace-nowrap ${
+                pausedRow === "first" ? "animation-play-state-paused" : ""
+              }`}
               style={{
-                animationPlayState: pausedRow === "first" ? "paused" : "running",
+                animationPlayState:
+                  pausedRow === "first" ? "paused" : "running",
                 width: "max-content",
               }}
             >
@@ -94,20 +131,29 @@ export function LogoMarquee() {
           {/* Second Row - Scrolling Left */}
           <div className="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
             <div
-              className={`flex animate-scroll-left whitespace-nowrap ${pausedRow === "second" ? "animation-play-state-paused" : ""}`}
+              className={`flex animate-scroll-left whitespace-nowrap ${
+                pausedRow === "second" ? "animation-play-state-paused" : ""
+              }`}
               style={{
-                animationPlayState: pausedRow === "second" ? "paused" : "running",
+                animationPlayState:
+                  pausedRow === "second" ? "paused" : "running",
                 width: "max-content",
               }}
             >
               {/* Triple the logos for seamless loop */}
-              {[...secondRowLogos, ...secondRowLogos, ...secondRowLogos].map((logo, index) => (
-                <LogoCard key={`second-${index}`} logo={logo} rowId="second" />
-              ))}
+              {[...secondRowLogos, ...secondRowLogos, ...secondRowLogos].map(
+                (logo, index) => (
+                  <LogoCard
+                    key={`second-${index}`}
+                    logo={logo}
+                    rowId="second"
+                  />
+                )
+              )}
             </div>
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
